@@ -17,7 +17,9 @@ export async function loginWithEmail(email: string, password: string) {
   });
 
   if (error) {
-    return { user: null, error: '로그인 정보가 올바르지 않거나 실패했습니다.' };
+    console.error('Supabase Login Error:', error);
+    // 원래 메시지 대신 실제 원인(error.message)을 출력
+    return { user: null, error: `로그인 실패: ${error.message}` };
   }
 
   return { user: data.user, error: null };
