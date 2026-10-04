@@ -89,7 +89,7 @@ export const SurveyInboxPage: React.FC = () => {
   };
 
   // 선택된 항목의 사진 URL 생성
-  const photoPath = selectedSurvey?.stamped_photo_path || selectedSurvey?.original_photo_path;
+  const photoPath = selectedSurvey?.stamped_photo_path;
   const imageUrl = getSurveyImageUrl(photoPath);
 
   return (

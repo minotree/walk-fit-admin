@@ -4,11 +4,10 @@ import { BUCKETS } from '../lib/constants';
 
 export interface SurveyLocation {
   id: string;
-  facility_name?: string;       // 지점명/시설명 (PWA 수집 입력값)
-  address?: string;              // 주소 정보
-  stamped_photo_path?: string;  // 스탬프 촬영 사진 상대 경로
-  original_photo_path?: string; // 원본 촬영 사진 상대 경로
-  review_note?: string;          // 현장 메모
+  facility_name?: string;
+  address?: string;
+  stamped_photo_path?: string; // 단일 대표 사진 경로로 사용
+  review_note?: string;
   latitude: number;
   longitude: number;
   status: 'pending' | 'approved' | 'rejected';

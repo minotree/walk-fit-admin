@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "walk_fit_admin",
+  "productName": "WalkFitAdmin",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.walkfit.admin",
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "walk_fit_admin",
+        "title": "WalkFitAdmin",
         "width": 800,
         "height": 600,
         "resizable": true,

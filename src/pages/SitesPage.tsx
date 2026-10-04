@@ -51,10 +51,9 @@ export const SitesPage: React.FC = () => {
     setErrorMsg(null);
     setSuccessMsg(null);
 
-    // JOIN된 survey_locations에서 PWA 촬영 사진 상대 경로 추출
+    // JOIN된 survey_locations에서 사진 경로 추출 (없을 경우 기존 site_image_path 참조)
     const photoPath = site.survey_locations?.stamped_photo_path 
-                   || site.survey_locations?.original_photo_path 
-                   || site.main_image_path 
+                   || site.site_image_path 
                    || null;
 
     setFormData({
@@ -92,11 +91,12 @@ export const SitesPage: React.FC = () => {
         toilet_status: formData.toilet_status,
         drinking_water_status: formData.drinking_water_status,
         amenity_note: formData.amenity_note,
+        site_image_path: formData.site_image_path, // survey_locations의 stamped_photo_path를 exercise_sites.site_image_path에 물리적 저장
         last_verified_at: formData.last_verified_at || null,
         is_published: formData.is_published,
       });
 
-      setSuccessMsg('지점 정보가 저장되었습니다.');
+      setSuccessMsg('지점 정보가 성공적으로 저장되었습니다.');
       setSelectedSite(updated);
       await fetchSites();
     } catch (err: any) {

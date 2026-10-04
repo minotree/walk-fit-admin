@@ -18,8 +18,8 @@ export async function listSites(params?: ListSitesParams) {
     .select(`
       *,
       survey_locations!survey_location_id (
-        stamped_photo_path,
-        original_photo_path
+        stamped_photo_path
+        
       )
     `, { count: 'exact' });
 
@@ -45,6 +45,7 @@ export async function listSites(params?: ListSitesParams) {
 
 /**
  * 지점 정보 수정 (UPDATE)
+ * exercise_sites.site_image_path 필드에 survey_locations의 대표 사진 상대 경로를 저장
  */
 export async function updateSite(id: string, siteData: Partial<ExerciseSite>) {
   const { data, error } = await supabase
@@ -57,8 +58,7 @@ export async function updateSite(id: string, siteData: Partial<ExerciseSite>) {
     .select(`
       *,
       survey_locations!survey_location_id (
-        stamped_photo_path,
-        original_photo_path
+        stamped_photo_path
       )
     `)
     .single();

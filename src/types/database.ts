@@ -12,6 +12,8 @@ export interface ExerciseSite {
   toilet_status: ToiletStatus;
   drinking_water_status: DrinkingWaterStatus;
   amenity_note: string;
+  site_image_path?: string | null; // <-- 외부 조회용 대표 이미지 경로 추가
+  survey_location_id?: string | null;
   last_verified_at: string | null;
   is_published: boolean;
   created_at: string;
@@ -42,5 +44,6 @@ export interface SiteEquipment {
   is_published: boolean;
   created_at: string;
   updated_at: string;
+  // 조인 조회용 확장 객체
   equipment_catalog?: EquipmentCatalog;
 }
