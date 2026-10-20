@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.venv-images/
+__pycache__/
+image-service/.models/
+image-service/test-output/
+.build-tools/

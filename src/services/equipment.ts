@@ -2,21 +2,22 @@
 import { supabase } from '../lib/supabase';
 import { BUCKETS } from '../lib/constants';
 import type { EquipmentCatalog } from '../types/database';
+import { createImageId } from '../lib/imageId';
 
 /**
  * 운동기구 대표/표준 이미지 업로드
  */
 export async function uploadEquipmentImage(file: File): Promise<string> {
-  const fileExt = file.name.split('.').pop();
-  const fileName = `catalog/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+  if (file.type !== 'image/webp') throw new Error('변환과 확인을 마친 WebP 이미지만 업로드할 수 있습니다.');
+  const fileName = `catalog/${createImageId()}.webp`;
 
   const { error: uploadError } = await supabase.storage
     .from(BUCKETS.EQUIPMENT_IMAGES)
-    .upload(fileName, file, { upsert: true });
+    .upload(fileName, file, { upsert: false, contentType: 'image/webp' });
 
   if (uploadError) {
     console.error('uploadEquipmentImage error:', uploadError);
-    throw new Error('운동기구 사진 업로드 실패');
+    throw new Error(`운동기구 사진 업로드 실패: ${uploadError.message}`);
   }
 
   const { data } = supabase.storage.from(BUCKETS.EQUIPMENT_IMAGES).getPublicUrl(fileName);
@@ -65,7 +66,7 @@ export async function createEquipmentCatalog(item: Partial<EquipmentCatalog>) {
 
   if (error) {
     console.error('createEquipmentCatalog error:', error);
-    throw new Error('운동기구 등록에 실패했습니다.');
+    throw new Error(`운동기구 등록 실패: ${error.message}${error.code ? ` (${error.code})` : ''}`);
   }
 
   return data as EquipmentCatalog;
@@ -93,7 +94,7 @@ export async function updateEquipmentCatalog(id: string, item: Partial<Equipment
 
   if (error) {
     console.error('updateEquipmentCatalog error:', error);
-    throw new Error('운동기구 정보 수정에 실패했습니다.');
+    throw new Error(`운동기구 수정 실패: ${error.message}${error.code ? ` (${error.code})` : ''}`);
   }
 
   return data as EquipmentCatalog;

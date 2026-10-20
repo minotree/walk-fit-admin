@@ -127,7 +127,7 @@ export const SiteEquipmentManager: React.FC<Props> = ({ siteId, siteName }) => {
   );
 
   return (
-    <div style={{ marginTop: '1.5rem', borderTop: '2px solid #e2e8f0', paddingTop: '1.2rem' }}>
+    <div className="site-equipment-manager">
       <h3 style={{ margin: '0 0 1rem 0', fontSize: '16px', color: '#0f172a' }}>
         🏋️ {siteName} - 설치된 운동기구 관리 ({siteEquipmentList.length}종)
       </h3>
@@ -139,9 +139,9 @@ export const SiteEquipmentManager: React.FC<Props> = ({ siteId, siteName }) => {
       )}
 
       {/* 기구 선택 및 추가 바 */}
-      <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '1rem' }}>
+      <div className="site-equipment-add-bar" style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', flexWrap: 'wrap', backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '1rem' }}>
         {/* 선택된 기구 표시 영역 */}
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ flex: '1 0 100%', minWidth: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
           {selectedEquipment ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: '#fff', padding: '6px 12px', borderRadius: '6px', border: '1px solid #2563eb', flex: 1 }}>
               {selectedEquipment.default_image_path ? (
@@ -213,7 +213,7 @@ export const SiteEquipmentManager: React.FC<Props> = ({ siteId, siteName }) => {
       </div>
 
       {/* 이미 설치된 기구 리스트 (현행 유지) */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+      <div className="site-equipment-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '1rem', color: '#64748b', fontSize: '13px' }}>로딩 중...</div>
         ) : siteEquipmentList.length === 0 ? (

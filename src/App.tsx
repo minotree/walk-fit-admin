@@ -11,7 +11,7 @@ export function App() {
   return (
     <AuthGate>
       {/* 상단 탭 네비게이션 */}
-      <div style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc', padding: '0 1rem', display: 'flex', gap: '0.5rem' }}>
+      <div className="app-tabs" style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc', padding: '0 1rem', display: 'flex', gap: '0.5rem' }}>
         <button
           onClick={() => setActiveTab('inbox')}
           style={{

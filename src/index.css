@@ -51,12 +51,12 @@
 }
 
 #root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
   text-align: center;
   border-inline: 1px solid var(--border);
-  min-height: 100svh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -65,6 +65,228 @@
 body {
   margin: 0;
 }
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.app-shell,
+.app-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.app-shell > header,
+.app-tabs {
+  flex-shrink: 0;
+}
+
+.workspace-page {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.workspace-page > :first-child {
+  flex-shrink: 0;
+  min-height: 0;
+}
+
+.workspace-page > :last-child {
+  min-width: 0;
+  min-height: 0;
+}
+
+.survey-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+  min-height: 0;
+}
+
+.site-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  height: 100%;
+  min-height: 0;
+}
+
+.site-edit-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas: 'notices notices' 'name photo' 'address photo' 'amenities photo' 'memo memo' 'verification verification' 'save save';
+  gap: 12px;
+  align-content: start;
+  min-width: 0;
+  text-align: left;
+}
+.site-form-notices { grid-area: notices; }
+.site-form-notices:empty { display: none; }
+.site-name-field { grid-area: name; }
+.site-address-field { grid-area: address; }
+.site-amenities-field { grid-area: amenities; min-width: 0; }
+.site-memo-field { grid-area: memo; }
+.site-verification-field { grid-area: verification; }
+.site-save-button { grid-area: save; }
+.site-photo-field { grid-area: photo; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.site-photo-frame { flex: 1; min-height: 0; height: 0; }
+.site-edit-form label { font-size: 14px; }
+.site-edit-form input,
+.site-edit-form select,
+.site-edit-form textarea { min-width: 0; max-width: 100%; }
+.site-edit-form textarea { resize: none; }
+
+.site-equipment-manager {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  padding-left: 20px;
+  border-left: 1px solid #e2e8f0;
+}
+.site-equipment-manager > :not(.site-equipment-list) { flex-shrink: 0; }
+.site-equipment-list { min-height: 0; overflow: auto; }
+.site-equipment-list > * { flex-shrink: 0; }
+.site-equipment-list > div { flex-wrap: wrap; gap: 10px; }
+.site-equipment-add-bar > :first-child { flex-basis: 100%; min-width: 0; }
+
+@media (max-width: 1199px) {
+  .site-detail-layout { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .site-photo-frame { min-height: 120px; }
+  .site-equipment-manager { padding-left: 0; border-left: none; border-top: 1px solid #e2e8f0; padding-top: 16px; }
+}
+
+.survey-detail > :not(.survey-media) {
+  flex-shrink: 0;
+}
+
+.survey-media {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  flex: 1;
+  min-height: 240px;
+}
+
+.survey-photo-card,
+.survey-map-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.survey-photo-card > img {
+  flex: 1;
+  min-height: 0;
+  height: 0;
+}
+
+.survey-map-frame {
+  flex: 1;
+  min-height: 0;
+}
+
+@media (max-width: 1199px) {
+  .survey-detail {
+    height: auto;
+    min-height: 100%;
+  }
+  .survey-media {
+    grid-template-columns: minmax(0, 1fr);
+    flex: none;
+  }
+  .survey-photo-card > img {
+    flex: none;
+    height: 300px;
+  }
+  .survey-map-frame {
+    flex: none;
+    height: 280px;
+  }
+}
+
+.equipment-image-dialog {
+  width: min(1440px, calc(100vw - 40px));
+  height: min(900px, calc(100dvh - 40px));
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #fff;
+  color: #1e293b;
+  box-shadow: 0 20px 60px #0005;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.equipment-image-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.equipment-image-dialog::backdrop {
+  background: #0f172a99;
+}
+
+.equipment-image-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.equipment-image-dialog-header h2 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 18px;
+}
+
+.equipment-image-dialog-header button {
+  flex-shrink: 0;
+  cursor: pointer;
+  padding: 6px 10px;
+}
+
+.equipment-image-dialog-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+.image-editor-layout { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; padding: 12px 16px; flex: 1; min-width: 0; min-height: 0; text-align: left; color: #1e293b; }
+.image-editor-controls { font-size: 13px; line-height: 1.4; }
+.image-editor-controls > p { margin: 2px 0; }
+.image-editor-controls > [aria-label="가림 영역 선택"] { max-height: 54px; overflow: auto; }
+.image-editor-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; min-height: 0; }
+.image-editor-source,
+.image-editor-result { display: flex; flex-direction: column; gap: 8px; min-width: 0; min-height: 0; font-size: 13px; }
+.image-editor-pane-heading { font-size: 14px; font-weight: 600; flex-shrink: 0; }
+.image-editor-viewport,
+.image-editor-result-preview { display: flex; align-items: center; justify-content: center; flex: 1; min-height: 0; min-width: 0; background: #f1f5f9; border-radius: 6px; overflow: hidden; }
+.image-editor-result-preview img { width: 100%; height: 100%; object-fit: contain; min-height: 0; }
+.image-editor-source > button,
+.image-editor-result > button { padding: 8px 12px; flex-shrink: 0; }
+.image-editor-result > label { flex-shrink: 0; }
+.image-editor-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; border-top: 1px solid #e2e8f0; padding-top: 8px; }
 
 h1,
 h2 {

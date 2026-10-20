@@ -93,7 +93,7 @@ export const SurveyInboxPage: React.FC = () => {
   const imageUrl = getSurveyImageUrl(photoPath);
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 60px)', gap: '1rem', padding: '1rem', boxSizing: 'border-box' }}>
+    <div className="workspace-page" style={{ display: 'flex', gap: '1rem', padding: '1rem', boxSizing: 'border-box' }}>
       {/* 좌측 패널: 조사 수집 목록 */}
       <div style={{ width: '360px', display: 'flex', flexDirection: 'column', gap: '0.8rem', borderRight: '1px solid #eee', paddingRight: '1rem' }}>
         <h2 style={{ margin: 0, fontSize: '18px' }}>PWA 현장 조사 수집 ({surveys.length})</h2>
@@ -147,14 +147,15 @@ export const SurveyInboxPage: React.FC = () => {
       </div>
 
       {/* 우측 패널: 수집 데이터 상세 검수 */}
-      <div style={{ flex: 1, overflowY: 'auto', paddingLeft: '0.5rem' }}>
+      <div className="survey-detail-panel" style={{ flex: 1, overflowY: 'auto', paddingLeft: '0.5rem' }}>
         {selectedSurvey ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '800px' }}>
+          <div className="survey-detail">
             {errorMsg && <div style={{ color: 'red', backgroundColor: '#ffe6e6', padding: '10px', borderRadius: '4px' }}>{errorMsg}</div>}
             {successMsg && <div style={{ color: 'green', backgroundColor: '#e6ffe6', padding: '10px', borderRadius: '4px' }}>{successMsg}</div>}
 
             {/* 대표 사진 카드 */}
-            <div style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '1rem', backgroundColor: '#fafafa' }}>
+            <div className="survey-media">
+            <div className="survey-photo-card" style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '1rem', backgroundColor: '#fafafa' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <span style={{ fontWeight: 'bold' }}>PWA 촬영 대표 사진</span>
                 <label style={{ fontSize: '13px', color: '#007bff', cursor: 'pointer', fontWeight: 'bold' }}>
@@ -175,7 +176,7 @@ export const SurveyInboxPage: React.FC = () => {
                 <img
                   src={imageUrl}
                   alt="현장 대표 사진"
-                  style={{ width: '100%', maxHeight: '360px', objectFit: 'contain', borderRadius: '4px', backgroundColor: '#000' }}
+                  style={{ width: '100%', objectFit: 'contain', borderRadius: '4px', backgroundColor: '#000' }}
                 />
               ) : (
                 <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888' }}>
@@ -185,18 +186,21 @@ export const SurveyInboxPage: React.FC = () => {
             </div>
 
             {/* 수집 GPS 위치 지도 */}
-            <div style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '1rem', backgroundColor: '#fafafa' }}>
+            <div className="survey-map-card" style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '1rem', backgroundColor: '#fafafa' }}>
               <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>수집 GPS 위치</div>
-              <div style={{ height: '280px', borderRadius: '4px', overflow: 'hidden' }}>
+              <div className="survey-map-frame" style={{ borderRadius: '4px', overflow: 'hidden' }}>
                 <LocationPickerMap
                   lat={selectedSurvey.latitude}
                   lng={selectedSurvey.longitude}
-                    onChange={() => {}}                 
+                  height="100%"
+                  disabled
+                  onChange={() => {}}
                 />
               </div>
               <div style={{ fontSize: '12px', color: '#666', marginTop: '6px', textAlign: 'center' }}>
                 위도: {selectedSurvey.latitude} | 경도: {selectedSurvey.longitude}
               </div>
+            </div>
             </div>
 
             {/* 주소 및 현장 메모 (좌측 정렬 반영) */}

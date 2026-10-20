@@ -22,6 +22,7 @@ interface LocationPickerProps {
   lng: number | null;
   onChange: (lat: number, lng: number) => void;
   disabled?: boolean;
+  height?: number | string;
 }
 
 const MapRecenter: React.FC<{ lat: number; lng: number }> = ({ lat, lng }) => {
@@ -51,6 +52,7 @@ export const LocationPickerMap: React.FC<LocationPickerProps> = ({
   lng,
   onChange,
   disabled = false,
+  height = 300,
 }) => {
   const defaultCenter: [number, number] = [37.5665, 126.978];
   const currentCenter: [number, number] =
@@ -61,7 +63,7 @@ export const LocationPickerMap: React.FC<LocationPickerProps> = ({
     'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
   return (
-    <div style={{ height: '300px', width: '100%', borderRadius: '8px', overflow: 'hidden', border: '1px solid #ccc' }}>
+    <div style={{ height, width: '100%', boxSizing: 'border-box', borderRadius: '8px', overflow: 'hidden', border: '1px solid #ccc' }}>
       <MapContainer
         center={currentCenter}
         zoom={15}

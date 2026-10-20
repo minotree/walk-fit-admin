@@ -110,7 +110,7 @@ export const SitesPage: React.FC = () => {
   const displayImageUrl = getSiteImageUrl(formData.site_image_path);
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 60px)', gap: '1rem', padding: '1rem', boxSizing: 'border-box' }}>
+    <div className="workspace-page" style={{ display: 'flex', gap: '1rem', padding: '1rem', boxSizing: 'border-box' }}>
       {/* 좌측 패널: 지점 검색 및 목록 */}
       <div style={{ width: '360px', display: 'flex', flexDirection: 'column', gap: '0.8rem', borderRight: '1px solid #eee', paddingRight: '1rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -167,15 +167,17 @@ export const SitesPage: React.FC = () => {
       </div>
 
       {/* 우측 패널: 상세 편집 폼 및 운동기구 매핑 */}
-      <div style={{ flex: 1, overflowY: 'auto', paddingLeft: '0.5rem' }}>
+      <div className="site-detail-panel" style={{ flex: 1, overflowY: 'auto', paddingLeft: '0.5rem' }}>
         {selectedSite ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '800px' }}>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="site-detail-layout">
+            <form className="site-edit-form" onSubmit={handleSubmit}>
+              <div className="site-form-notices">
               {errorMsg && <div style={{ color: 'red', backgroundColor: '#ffe6e6', padding: '10px', borderRadius: '4px' }}>{errorMsg}</div>}
               {successMsg && <div style={{ color: 'green', backgroundColor: '#e6ffe6', padding: '10px', borderRadius: '4px' }}>{successMsg}</div>}
+              </div>
 
               {/* 지점 이름 */}
-              <div>
+              <div className="site-name-field">
                 <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '4px' }}>지점 이름 *</label>
                 <input
                   type="text"
@@ -188,14 +190,14 @@ export const SitesPage: React.FC = () => {
               </div>
 
               {/* 지점 대표 사진 (보기 전용) */}
-              <div style={{ textAlign: 'center' }}>
+              <div className="site-photo-field" style={{ textAlign: 'center' }}>
                 <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '6px', textAlign: 'left' }}>지점 대표 사진 (PWA 수집)</label>
                 {displayImageUrl ? (
-                  <div style={{ display: 'inline-block' }}>
+                  <div className="site-photo-frame">
                     <img
                       src={displayImageUrl}
                       alt="지점 대표 사진"
-                      style={{ maxWidth: '320px', maxHeight: '200px', borderRadius: '6px', objectFit: 'cover', border: '1px solid #cbd5e1' }}
+                      style={{ width: '100%', height: '100%', borderRadius: '6px', objectFit: 'contain', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
                     />
                   </div>
                 ) : (
@@ -204,7 +206,7 @@ export const SitesPage: React.FC = () => {
               </div>
 
               {/* 주소 설명 */}
-              <div>
+              <div className="site-address-field">
                 <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '4px' }}>위치 / 주소 설명</label>
                 <input
                   type="text"
@@ -216,7 +218,7 @@ export const SitesPage: React.FC = () => {
               </div>
 
               {/* 편의시설 상태 */}
-              <div style={{ display: 'flex', gap: '1rem' }}>
+              <div className="site-amenities-field" style={{ display: 'flex', gap: '1rem' }}>
                 <div style={{ flex: 1 }}>
                   <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '4px' }}>화장실 여부</label>
                   <select
@@ -245,7 +247,7 @@ export const SitesPage: React.FC = () => {
               </div>
 
               {/* 편의시설 메모 */}
-              <div>
+              <div className="site-memo-field">
                 <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '4px' }}>편의시설 설명 메모</label>
                 <textarea
                   value={formData.amenity_note}
@@ -256,7 +258,7 @@ export const SitesPage: React.FC = () => {
               </div>
 
               {/* 현장 확인일 & 공개 여부 */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="site-verification-field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                 <div>
                   <label style={{ fontWeight: 'bold', marginRight: '8px' }}>현장 확인일:</label>
                   <input
@@ -280,6 +282,7 @@ export const SitesPage: React.FC = () => {
 
               {/* 저장 버튼 */}
               <button
+                className="site-save-button"
                 type="submit"
                 disabled={saving}
                 style={{
@@ -297,7 +300,7 @@ export const SitesPage: React.FC = () => {
               </button>
             </form>
 
-            {/* 하단: 지점별 운동기구 관리 매핑 컴포넌트 */}
+            {/* 우측: 지점별 운동기구 관리 */}
             <SiteEquipmentManager siteId={selectedSite.id} siteName={selectedSite.name} />
           </div>
         ) : (

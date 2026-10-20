@@ -93,14 +93,14 @@ export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
   }
 
   return (
-    <div>
+    <div className="app-shell">
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 2rem', borderBottom: '1px solid #ddd', backgroundColor: '#fff' }}>
         <h1 style={{ margin: 0, fontSize: '18px' }}>Walk Fit Admin</h1>
         <button onClick={handleLogout} style={{ padding: '6px 12px', cursor: 'pointer' }}>
           로그아웃
         </button>
       </header>
-      <main>{children}</main>
+      <main className="app-main">{children}</main>
     </div>
   );
 };
