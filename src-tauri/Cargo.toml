@@ -1,6 +1,6 @@
 [package]
 name = "WalkFitAdmin"
-version = "0.1.7"
+version = "0.1.8"
 description = "walk_fit_admin"
 authors = ["you"]
 license = ""

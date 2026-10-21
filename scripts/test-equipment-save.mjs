@@ -15,12 +15,14 @@ import { createRoot } from 'react-dom/client';
 import { EquipmentPage } from '../../src/pages/EquipmentPage';
 import { SurveyInboxPage } from '../../src/pages/SurveyInboxPage';
 import { SitesPage } from '../../src/pages/SitesPage';
+import { DataResetDialog } from '../../src/components/DataResetDialog';
 import '../../src/index.css';
 window.alert = () => { throw new Error('Native alert must not be used'); };
 const sampleCanvas = document.createElement('canvas'); sampleCanvas.width = 1200; sampleCanvas.height = 1600;
 const samplePreview = sampleCanvas.toDataURL('image/webp');
 window.__samplePreview = samplePreview;
 window.fetch = async url => {
+  if (String(url) === samplePreview) return new Response(new Blob([Uint8Array.from(atob(samplePreview.split(',')[1]), c => c.charCodeAt(0))], { type: 'image/webp' }));
   if (String(url).endsWith('/analyze')) return new Response(JSON.stringify({ preview: samplePreview, width: 1200, height: 1600, boxes: [[.4, .3, .7, .6], [.5, .6, .65, .8]], crop: [0, 0, 1, 1], warning: null }));
   if (String(url).endsWith('/render')) return new Response(JSON.stringify({ preview: samplePreview, width: 2, height: 2, bytes: 80 }));
   throw new Error('Unexpected network request in isolated test');
@@ -37,6 +39,10 @@ root.render(shell(<EquipmentPage />));
 window.__showSurvey = () => root.render(shell(<SurveyInboxPage />));
 window.__equipmentCount = 3;
 window.__showSites = () => root.render(shell(<SitesPage key={'sites-' + window.__equipmentCount} />));
+window.__resetCalls = 0;
+window.__resetComplete = false;
+const showReset = open => root.render(shell(<DataResetDialog open={open} onClose={() => showReset(false)} onComplete={() => { window.__resetComplete = true; }} />));
+window.__showReset = () => showReset(true);
 async function run() {
   await pause(); button('+ 새 기구 등록').click(); await pause();
   save(); await pause();
@@ -88,13 +94,19 @@ const result = await build({ configFile: false, logLevel: 'error', define: { 'pr
     if (id === '../services/sites' && importer?.replaceAll('\\', '/').endsWith('/src/pages/SitesPage.tsx')) return '\0mock-sites';
     if (id === '../services/siteEquipment' && importer?.replaceAll('\\', '/').endsWith('/src/components/SiteEquipmentManager.tsx')) return '\0mock-site-equipment';
     if (id === '../services/equipment' && importer?.replaceAll('\\', '/').endsWith('/src/components/SiteEquipmentManager.tsx')) return '\0mock-equipment';
+    if (id === '../services/dataReset' && importer?.replaceAll('\\', '/').endsWith('/src/components/DataResetDialog.tsx')) return '\0mock-reset';
   }, load(id) {
     if (id === '\0mock-equipment') return mockService;
     if (id === '\0mock-surveys') return `
       export async function listSurveyLocations() { return [{ id: 'survey-test', address: '서울특별시 도봉구 테스트 주소', review_note: '현장 메모 테스트입니다. 운동기구와 편의시설을 확인했습니다.', stamped_photo_path: 'test', latitude: 37.5, longitude: 127, status: 'pending', created_at: '2026-10-21' }]; }
       export function getSurveyImageUrl() { return window.__samplePreview; }
       export async function approveSurveyToSite() { throw new Error('Approval must not be called in layout tests'); }
-      export async function updateSurveyPhoto() { throw new Error('Upload must not be called in layout tests'); }
+      export async function updateSurveyPhoto(id, file) {
+        if (window.__failSurveySave) throw new Error('대표 사진 저장 테스트 오류');
+        window.__surveyUploads = (window.__surveyUploads || 0) + 1;
+        window.__surveySaved = { id, type: file.type };
+        return { path: 'edited.webp' };
+      }
     `;
     if (id === '\0mock-map') return `import React from 'react'; export function LocationPickerMap({ height }) { return React.createElement('div', { style: { height, width: '100%', boxSizing: 'border-box', border: '1px solid #ccc' } }, '테스트 지도'); }`;
     if (id === '\0mock-sites') return `
@@ -107,6 +119,14 @@ const result = await build({ configFile: false, logLevel: 'error', define: { 'pr
       export async function addSiteEquipment() { throw new Error('Must not add equipment'); }
       export async function updateSiteEquipment() { throw new Error('Must not update equipment'); }
       export async function deleteSiteEquipment() { throw new Error('Must not delete equipment'); }
+    `;
+    if (id === '\0mock-reset') return `
+      const initial = { tables: { site_equipment: 2, exercise_sites: 1, equipment_catalog: 2, survey_locations: 1 }, buckets: { 'equipment-images': ['test.webp'], 'survey-photos': ['test.webp'] } };
+      export const dataReset = { async preview() { return initial; }, async reset(preview, confirmation, progress) {
+        if (confirmation !== '전체 초기화') throw new Error('Wrong confirmation');
+        window.__resetCalls++; progress('검증 중');
+        return { tables: { site_equipment: 0, exercise_sites: 0, equipment_catalog: 0, survey_locations: 0 }, buckets: { 'equipment-images': [], 'survey-photos': [] } };
+      } };
     `;
   } }, react(),
 ], build: { write: false, lib: { entry, formats: ['iife'], name: 'EquipmentSaveTest' } } });
@@ -205,6 +225,36 @@ try {
       throw new Error('Survey fullscreen overflow: ' + JSON.stringify(layout));
     console.log('PASS: survey ' + width + 'x' + height + ', photo/map/notes/approval visible without scrolling');
   }
+  const surveyEditing = await send('Runtime.evaluate', { awaitPromise: true, returnByValue: true, expression: `(async () => {
+    const pause = () => new Promise(resolve => setTimeout(resolve, 100));
+    const button = text => Array.from(document.querySelectorAll('button')).find(b => b.textContent === text);
+    const assert = (value, message) => { if (!value) throw new Error(message); };
+    button('기존 사진 편집').click(); await pause();
+    assert(document.querySelector('dialog')?.open && button('사진 영역 자르기'), 'Existing photo must load in the shared editor');
+    assert(!button('WebP 결과 만들기').disabled, 'Existing photo must be analyzed automatically');
+    button('취소').click(); await pause();
+    assert(!window.__surveyUploads, 'Cancel must not upload');
+    button('새 사진 선택·편집').click(); await pause();
+    const input = document.querySelector('dialog input[type=file]');
+    const transfer = new DataTransfer(); transfer.items.add(new File(['test'], 'new.webp', { type: 'image/webp' }));
+    input.files = transfer.files; input.dispatchEvent(new Event('change', { bubbles: true })); await pause();
+    button('WebP 결과 만들기').click(); await pause();
+    document.querySelector('dialog input[type=checkbox]').click(); await pause();
+    button('확인한 이미지 적용').click(); await pause();
+    assert(window.__surveyUploads === 1 && window.__surveySaved.id === 'survey-test' && window.__surveySaved.type === 'image/webp', 'New edited photo must save to the selected survey');
+    button('기존 사진 편집').click(); await pause();
+    button('WebP 결과 만들기').click(); await pause();
+    document.querySelector('dialog input[type=checkbox]').click(); await pause();
+    window.__failSurveySave = true;
+    button('확인한 이미지 적용').click(); await pause();
+    assert(document.querySelector('dialog')?.open && document.querySelector('dialog').textContent.includes('대표 사진 저장 테스트 오류'), 'Save error must be visible inside the editor');
+    window.__failSurveySave = false;
+    button('확인한 이미지 적용').click(); await pause();
+    assert(window.__surveyUploads === 2 && !document.querySelector('dialog'), 'Retry must preserve the edited result and close after saving');
+    return 'PASS: survey existing/new photo editing, cancel without upload, confirmed WebP save and error retry';
+  })()` }, sessionId);
+  if (surveyEditing.exceptionDetails) throw new Error(JSON.stringify(surveyEditing.exceptionDetails));
+  console.log(surveyEditing.result.value);
   for (const count of [0, 3, 30]) {
     await send('Runtime.evaluate', { expression: 'window.__equipmentCount = ' + count + '; window.__showSites()' }, sessionId);
     await pause();
@@ -234,5 +284,28 @@ try {
       console.log('PASS: sites ' + width + 'x' + height + ', equipment=' + count + ', form/save/manager visible without page scrolling');
     }
   }
+  const resetResult = await send('Runtime.evaluate', { expression: `(async () => {
+    const wait = () => new Promise(resolve => setTimeout(resolve, 80));
+    const find = text => Array.from(document.querySelectorAll('button')).find(button => button.textContent === text);
+    const check = (condition, message) => { if (!condition) throw new Error(message); };
+    window.__showReset(); await wait();
+    check(find('모든 데이터와 파일 영구 삭제').disabled && window.__resetCalls === 0, 'Must not delete on open');
+    find('삭제 대상 조회·새로고침').click(); await wait();
+    check(document.querySelectorAll('.data-reset-dialog tbody tr').length === 6, 'All targets must be listed');
+    check(find('모든 데이터와 파일 영구 삭제').disabled && window.__resetCalls === 0, 'Preview must not delete');
+    document.querySelector('.data-reset-dialog input[type=checkbox]').click(); await wait();
+    check(find('모든 데이터와 파일 영구 삭제').disabled, 'Acknowledgement alone must not enable deletion');
+    const input = document.querySelector('input[aria-label="초기화 확인 문구"]');
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, '전체 초기화');
+    input.dispatchEvent(new Event('input', { bubbles: true })); await wait();
+    check(!find('모든 데이터와 파일 영구 삭제').disabled, 'Confirmed operation must be enabled');
+    find('모든 데이터와 파일 영구 삭제').click(); await wait();
+    check(window.__resetCalls === 1 && window.__resetComplete, 'Confirmed reset must execute exactly once');
+    find('닫기').click(); await wait(); window.__showReset(); await wait();
+    check(find('모든 데이터와 파일 영구 삭제').disabled && !document.querySelector('.data-reset-dialog tbody'), 'Reopening must clear the previous preview and confirmation');
+    return 'PASS: reset preview, acknowledgement, confirmation, execution and clean reopen';
+  })()`, awaitPromise: true, returnByValue: true }, sessionId);
+  if (resetResult.exceptionDetails) throw new Error(resetResult.exceptionDetails.exception?.description || 'Reset UI test failed');
+  console.log(resetResult.result.value);
   await send('Browser.close');
 } finally { socket?.close(); child.kill(); }

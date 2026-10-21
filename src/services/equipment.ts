@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { BUCKETS } from '../lib/constants';
 import type { EquipmentCatalog } from '../types/database';
 import { createImageId } from '../lib/imageId';
+import { cleanupOldImage } from './imageCleanup';
 
 /**
  * 운동기구 대표/표준 이미지 업로드
@@ -76,7 +77,10 @@ export async function createEquipmentCatalog(item: Partial<EquipmentCatalog>) {
  * 기존 운동기구 카탈로그 정보 수정
  */
 export async function updateEquipmentCatalog(id: string, item: Partial<EquipmentCatalog>) {
-  const { data, error } = await supabase
+  const { data: previous, error: readError } = await supabase.from('equipment_catalog')
+    .select('default_image_path').eq('id', id).single();
+  if (readError) throw new Error('기존 운동기구 사진 정보를 확인하지 못했습니다.');
+  let update = supabase
     .from('equipment_catalog')
     .update({
       name: item.name,
@@ -88,14 +92,16 @@ export async function updateEquipmentCatalog(id: string, item: Partial<Equipment
       source_reference: item.source_reference,
       updated_at: new Date().toISOString(),
     })
-    .eq('id', id)
-    .select()
-    .single();
+    .eq('id', id);
+  update = previous.default_image_path === null ? update.is('default_image_path', null)
+    : update.eq('default_image_path', previous.default_image_path);
+  const { data, error } = await update.select().single();
 
   if (error) {
     console.error('updateEquipmentCatalog error:', error);
     throw new Error(`운동기구 수정 실패: ${error.message}${error.code ? ` (${error.code})` : ''}`);
   }
 
-  return data as EquipmentCatalog;
+  const cleanupWarning = await cleanupOldImage(BUCKETS.EQUIPMENT_IMAGES, previous.default_image_path, data.default_image_path);
+  return { ...data, cleanupWarning } as EquipmentCatalog & { cleanupWarning?: string };
 }

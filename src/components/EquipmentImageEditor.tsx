@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
 import { changeRegion, MIN_REGION_SIZE } from '../lib/imageRegions';
 import type { Rect, Point, RegionAction } from '../lib/imageRegions';
@@ -13,7 +13,7 @@ async function request<T>(path: string, data: FormData, signal?: AbortSignal): P
     response = await fetch(`${endpoint}/${path}`, { method: 'POST', body: data, signal });
   } catch (error) {
     if (signal?.aborted) throw error;
-    throw new Error('이미지 처리 서버에 연결할 수 없습니다. scripts/start-image-service.cmd를 실행해 주세요.');
+    throw new Error('이미지 처리 서버에 연결할 수 없습니다. 프로그램을 다시 실행해 주세요. 계속되면 image-service/README.md의 최초 준비를 확인해 주세요.');
   }
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
@@ -22,8 +22,10 @@ async function request<T>(path: string, data: FormData, signal?: AbortSignal): P
   return response.json();
 }
 
-export function EquipmentImageEditor({ open, onAccept, onCancel }: {
+export function EquipmentImageEditor({ open, onAccept, onCancel, initialFile, autoCrop = true, cropLabel = '기구 영역 자르기', saveError }: {
   open: boolean; onAccept: (file: File) => void; onCancel: () => void;
+  initialFile?: File; autoCrop?: boolean; cropLabel?: string;
+  saveError?: string | null;
 }) {
   const dialog = useRef<HTMLDialogElement | null>(null);
   useEffect(() => {
@@ -60,8 +62,8 @@ export function EquipmentImageEditor({ open, onAccept, onCancel }: {
   const gesture = useRef<{ target: number | 'crop' | 'new'; action: RegionAction; origin: Point; initial: Rect } | null>(null);
   useEffect(() => () => controller.current?.abort(), []);
 
-  const invalidate = () => { setOutput(null); setConfirmed(false); };
-  const choose = async (selected: File) => {
+  const invalidate = useCallback(() => { setOutput(null); setConfirmed(false); }, []);
+  const choose = useCallback(async (selected: File) => {
     controller.current?.abort();
     const active = new AbortController();
     controller.current = active;
@@ -73,11 +75,17 @@ export function EquipmentImageEditor({ open, onAccept, onCancel }: {
       const data = new FormData(); data.append('file', selected);
       const result = await request<Analysis>('analyze', data, active.signal);
       if (result.width && result.height) setImageSize({ width: result.width, height: result.height });
-      setAnalysis(result); setBoxes(result.boxes); setCrop(result.crop);
+      setAnalysis(result); setBoxes(result.boxes); setCrop(autoCrop ? result.crop : [0, 0, 1, 1]);
     } catch (err) {
       if (!active.signal.aborted) setError(err instanceof Error ? err.message : '이미지 분석 실패');
     } finally { if (!active.signal.aborted) setBusy(false); }
-  };
+  }, [autoCrop, invalidate]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (initialFile) queueMicrotask(() => { if (!cancelled) void choose(initialFile); });
+    return () => { cancelled = true; };
+  }, [initialFile, choose]);
 
   const point = (event: PointerEvent<HTMLDivElement>): [number, number] => {
     const rect = stage.current!.getBoundingClientRect();
@@ -169,12 +177,13 @@ export function EquipmentImageEditor({ open, onAccept, onCancel }: {
       onChange={event => { const selected = event.target.files?.[0]; if (selected) void choose(selected); event.target.value = ''; }} />
     {busy && <p role="status">이미지 처리 중… 첫 실행은 피사체 감지 모델 준비로 시간이 걸릴 수 있습니다.</p>}
     {error && <p role="alert" style={{ color: '#b91c1c' }}>{error}</p>}
+    {saveError && <p role="alert" style={{ color: '#b91c1c' }}>{saveError}</p>}
     {analysis && <>
       <p>현재 가림 {boxes.length}개 (최초 자동 감지 {analysis.boxes.length}개). 작은 사람·뒷모습·가려진 사람은 놓칠 수 있습니다. 사진 전체를 확인해 주세요.</p>
       {analysis.warning && <p role="status">{analysis.warning}</p>}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '8px 0' }}>
         <button type="button" disabled={busy} aria-pressed={mode === 'mask'} onClick={() => { setMode('mask'); setDrawing(false); }}>사람 가리기</button>
-        <button type="button" disabled={busy} aria-pressed={mode === 'crop'} onClick={() => { setMode('crop'); setDrawing(false); setSelectedBox(null); }}>기구 영역 자르기</button>
+        <button type="button" disabled={busy} aria-pressed={mode === 'crop'} onClick={() => { setMode('crop'); setDrawing(false); setSelectedBox(null); }}>{cropLabel}</button>
         <button type="button" disabled={busy || (mode === 'mask' && boxes.length >= 100)} aria-pressed={drawing}
           onClick={() => { setDrawing(true); setSelectedBox(null); }}>{mode === 'mask' ? '새 가림 영역' : '자르기 다시 그리기'}</button>
         {mode === 'mask' && <>

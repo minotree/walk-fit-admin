@@ -1,6 +1,7 @@
 // src/services/surveys.ts
 import { supabase } from '../lib/supabase';
 import { BUCKETS } from '../lib/constants';
+import { cleanupOldImage } from './imageCleanup';
 
 export interface SurveyLocation {
   id: string;
@@ -29,7 +30,10 @@ export function getSurveyImageUrl(path?: string): string | null {
 /**
  * PWA 현장 조사 대표 이미지 교체 업로드 및 DB 업데이트
  */
-export async function updateSurveyPhoto(surveyLocationId: string, file: File): Promise<string> {
+export async function updateSurveyPhoto(surveyLocationId: string, file: File): Promise<{ path: string; cleanupWarning?: string }> {
+  const { data: previous, error: readError } = await supabase.from('survey_locations')
+    .select('stamped_photo_path').eq('id', surveyLocationId).single();
+  if (readError) throw new Error('기존 대표 사진 정보를 확인하지 못했습니다.');
   const fileExt = file.name.split('.').pop();
   const fileName = `representative/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
 
@@ -44,17 +48,21 @@ export async function updateSurveyPhoto(surveyLocationId: string, file: File): P
   }
 
   // 2. survey_locations 테이블의 stamped_photo_path 업데이트
-  const { error: updateError } = await supabase
+  let update = supabase
     .from('survey_locations')
     .update({ stamped_photo_path: fileName })
     .eq('id', surveyLocationId);
+  update = previous.stamped_photo_path === null ? update.is('stamped_photo_path', null)
+    : update.eq('stamped_photo_path', previous.stamped_photo_path);
+  const { error: updateError } = await update.select('id').single();
 
   if (updateError) {
     console.error('updateSurveyPhoto DB error:', updateError);
     throw new Error('조사 데이터 사진 경로 업데이트에 실패했습니다.');
   }
 
-  return fileName;
+  const cleanupWarning = await cleanupOldImage(BUCKETS.SURVEY_PHOTOS, previous.stamped_photo_path, fileName);
+  return { path: fileName, cleanupWarning };
 }
 
 /**
@@ -81,40 +89,13 @@ export async function listSurveyLocations(statusFilter: 'all' | 'pending' | 'app
  * PWA 조사 데이터를 exercise_sites 지점으로 승인 및 전환
  */
 export async function approveSurveyToSite(survey: SurveyLocation) {
-  // facility_name(시설명)을 1순위로 지점 이름(name)에 지정
-  const siteName = survey.facility_name?.trim() || survey.address?.trim() || '신규 수집 지점';
-
-  const { data: siteData, error: siteError } = await supabase
-    .from('exercise_sites')
-    .insert([
-      {
-        name: siteName,                            // facility_name 반영!
-        latitude: survey.latitude,
-        longitude: survey.longitude,
-        address_text: survey.address || '',
-        amenity_note: survey.review_note || '',
-        survey_location_id: survey.id,            // survey_locations 외래키 연동
-        is_published: false,
-        last_verified_at: new Date().toISOString().split('T')[0],
-      },
-    ])
-    .select()
-    .single();
-
-  if (siteError) {
-    console.error('approveSurveyToSite insert error:', siteError);
-    throw new Error('지점 승인 생성 중 오류가 발생했습니다.');
+  const { data, error } = await supabase.rpc('admin_approve_survey_to_site', { p_survey_id: survey.id });
+  if (error) {
+    if (error.code === 'PGRST202' || error.code === '42883') {
+      throw new Error('승인 기능의 DB 업데이트가 필요합니다. supabase/README.md의 적용 순서를 확인해 주세요.');
+    }
+    throw new Error(`지점 승인에 실패했습니다: ${error.message}`);
   }
-
-  // 승인 상태(status = 'approved')로 변경
-  const { error: updateError } = await supabase
-    .from('survey_locations')
-    .update({ status: 'approved' })
-    .eq('id', survey.id);
-
-  if (updateError) {
-    console.error('approveSurveyToSite status update error:', updateError);
-  }
-
-  return siteData;
+  if (!data) throw new Error('지점 승인 결과를 확인하지 못했습니다.');
+  return data;
 }

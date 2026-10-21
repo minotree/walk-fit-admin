@@ -1,7 +1,7 @@
 // src/services/sites.ts
 import { supabase } from '../lib/supabase';
 import { BUCKETS } from '../lib/constants';
-import type { ExerciseSite } from '../types/database';
+import type { ExerciseSite, SiteUpdate } from '../types/database';
 
 export interface ListSitesParams {
   searchQuery?: string;
@@ -40,18 +40,26 @@ export async function listSites(params?: ListSitesParams) {
     throw new Error('지점 목록을 불러오지 못했습니다.');
   }
 
-  return { data: data || [], totalCount: count || 0 };
+  return { data: (data || []) as ExerciseSite[], totalCount: count || 0 };
 }
 
 /**
  * 지점 정보 수정 (UPDATE)
- * exercise_sites.site_image_path 필드에 survey_locations의 대표 사진 상대 경로를 저장
+ * 사진과 조사 연결은 변경하지 않고 지점 자체 정보만 수정합니다.
  */
-export async function updateSite(id: string, siteData: Partial<ExerciseSite>) {
+export async function updateSite(id: string, siteData: SiteUpdate) {
   const { data, error } = await supabase
     .from('exercise_sites')
     .update({
-      ...siteData,
+      name: siteData.name,
+      latitude: siteData.latitude,
+      longitude: siteData.longitude,
+      address_text: siteData.address_text,
+      toilet_status: siteData.toilet_status,
+      drinking_water_status: siteData.drinking_water_status,
+      amenity_note: siteData.amenity_note,
+      last_verified_at: siteData.last_verified_at,
+      is_published: siteData.is_published,
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
@@ -68,7 +76,7 @@ export async function updateSite(id: string, siteData: Partial<ExerciseSite>) {
     throw new Error('지점 정보 저장에 실패했습니다.');
   }
 
-  return data;
+  return data as ExerciseSite;
 }
 
 /**

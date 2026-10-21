@@ -133,6 +133,7 @@ export const EquipmentPage: React.FC = () => {
       } else if (selectedItem) {
         const updated = await updateEquipmentCatalog(selectedItem.id, payload);
         setSuccessMsg('운동기구 정보가 저장되었습니다.');
+        if (updated.cleanupWarning) setErrorMsg(updated.cleanupWarning);
         setSelectedItem(updated);
       }
       await fetchList();

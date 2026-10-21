@@ -1,17 +1,18 @@
 // src/pages/SitesPage.tsx
 import React, { useState, useEffect } from 'react';
-import type { ToiletStatus, DrinkingWaterStatus } from '../types/database';
+import type { ExerciseSite, ToiletStatus, DrinkingWaterStatus } from '../types/database';
+import { sitePhotoPath } from '../lib/sitePhoto';
 import { listSites, updateSite, getSiteImageUrl } from '../services/sites';
 import { SiteEquipmentManager } from '../components/SiteEquipmentManager';
 
 export const SitesPage: React.FC = () => {
-  const [sites, setSites] = useState<any[]>([]);
+  const [sites, setSites] = useState<ExerciseSite[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [publishedFilter, setPublishedFilter] = useState<'all' | 'published' | 'unpublished'>('all');
   const [loading, setLoading] = useState(false);
 
-  const [selectedSite, setSelectedSite] = useState<any | null>(null);
+  const [selectedSite, setSelectedSite] = useState<ExerciseSite | null>(null);
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -24,7 +25,6 @@ export const SitesPage: React.FC = () => {
     toilet_status: 'unknown' as ToiletStatus,
     drinking_water_status: 'unknown' as DrinkingWaterStatus,
     amenity_note: '',
-    site_image_path: '' as string | null,
     last_verified_at: '',
     is_published: false,
   });
@@ -46,15 +46,11 @@ export const SitesPage: React.FC = () => {
     fetchSites();
   }, [searchQuery, publishedFilter]);
 
-  const handleSelectSite = (site: any) => {
+  const handleSelectSite = (site: ExerciseSite) => {
+    if (saving) return;
     setSelectedSite(site);
     setErrorMsg(null);
     setSuccessMsg(null);
-
-    // JOIN된 survey_locations에서 사진 경로 추출 (없을 경우 기존 site_image_path 참조)
-    const photoPath = site.survey_locations?.stamped_photo_path 
-                   || site.site_image_path 
-                   || null;
 
     setFormData({
       name: site.name,
@@ -64,7 +60,6 @@ export const SitesPage: React.FC = () => {
       toilet_status: site.toilet_status,
       drinking_water_status: site.drinking_water_status,
       amenity_note: site.amenity_note || '',
-      site_image_path: photoPath,
       last_verified_at: site.last_verified_at || '',
       is_published: site.is_published,
     });
@@ -91,7 +86,6 @@ export const SitesPage: React.FC = () => {
         toilet_status: formData.toilet_status,
         drinking_water_status: formData.drinking_water_status,
         amenity_note: formData.amenity_note,
-        site_image_path: formData.site_image_path, // survey_locations의 stamped_photo_path를 exercise_sites.site_image_path에 물리적 저장
         last_verified_at: formData.last_verified_at || null,
         is_published: formData.is_published,
       });
@@ -107,7 +101,7 @@ export const SitesPage: React.FC = () => {
   };
 
   // Storage 경로를 Public URL로 변환하여 보기 전용으로 출력
-  const displayImageUrl = getSiteImageUrl(formData.site_image_path);
+  const displayImageUrl = getSiteImageUrl(sitePhotoPath(selectedSite));
 
   return (
     <div className="workspace-page" style={{ display: 'flex', gap: '1rem', padding: '1rem', boxSizing: 'border-box' }}>

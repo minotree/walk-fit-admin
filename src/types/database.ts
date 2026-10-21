@@ -12,13 +12,17 @@ export interface ExerciseSite {
   toilet_status: ToiletStatus;
   drinking_water_status: DrinkingWaterStatus;
   amenity_note: string;
-  site_image_path?: string | null; // <-- 외부 조회용 대표 이미지 경로 추가
+  site_image_path?: string | null; // Legacy fallback; new saves must not copy the joined photo here.
   survey_location_id?: string | null;
   last_verified_at: string | null;
   is_published: boolean;
   created_at: string;
   updated_at: string;
+  survey_locations?: { stamped_photo_path: string | null } | null;
 }
+
+export type SiteUpdate = Pick<ExerciseSite, 'name' | 'latitude' | 'longitude' | 'address_text'
+  | 'toilet_status' | 'drinking_water_status' | 'amenity_note' | 'last_verified_at' | 'is_published'>;
 
 export interface EquipmentCatalog {
   id: string;
@@ -38,7 +42,6 @@ export interface SiteEquipment {
   id: string;
   site_id: string;
   equipment_id: string;
-  site_image_path: string | null;
   quantity: number;
   display_order: number;
   is_published: boolean;

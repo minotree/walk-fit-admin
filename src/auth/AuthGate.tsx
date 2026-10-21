@@ -1,6 +1,7 @@
 // src/auth/AuthGate.tsx
 import React, { useState, useEffect } from 'react';
 import { loginWithEmail, logout, checkAdminAccess } from '../services/auth';
+import { DataResetDialog } from '../components/DataResetDialog';
 
 interface AuthGateProps {
   children: React.ReactNode;
@@ -12,6 +13,8 @@ export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [dataVersion, setDataVersion] = useState(0);
 
   // 세션 확인 및 관리자 권한 검증
   const verifyAccess = async () => {
@@ -96,11 +99,15 @@ export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
     <div className="app-shell">
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 2rem', borderBottom: '1px solid #ddd', backgroundColor: '#fff' }}>
         <h1 style={{ margin: 0, fontSize: '18px' }}>Walk Fit Admin</h1>
+        <div style={{ display: 'flex', gap: 12 }}>
+        <button onClick={() => setResetOpen(true)} style={{ padding: '6px 12px', color: '#b91c1c', cursor: 'pointer' }}>데이터 초기화</button>
         <button onClick={handleLogout} style={{ padding: '6px 12px', cursor: 'pointer' }}>
           로그아웃
         </button>
+        </div>
       </header>
-      <main className="app-main">{children}</main>
+      <main className="app-main" key={dataVersion}>{children}</main>
+      <DataResetDialog open={resetOpen} onClose={() => setResetOpen(false)} onComplete={() => setDataVersion(previous => previous + 1)} />
     </div>
   );
 };

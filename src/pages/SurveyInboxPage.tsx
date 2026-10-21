@@ -1,5 +1,5 @@
 // src/pages/SurveyInboxPage.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   listSurveyLocations,
   approveSurveyToSite,
@@ -8,6 +8,7 @@ import {
   type SurveyLocation,
 } from '../services/surveys';
 import { LocationPickerMap } from '../components/LocationPickerMap';
+import { EquipmentImageEditor } from '../components/EquipmentImageEditor';
 
 export const SurveyInboxPage: React.FC = () => {
   const [surveys, setSurveys] = useState<SurveyLocation[]>([]);
@@ -17,6 +18,11 @@ export const SurveyInboxPage: React.FC = () => {
   const [selectedSurvey, setSelectedSurvey] = useState<SurveyLocation | null>(null);
   const [approving, setApproving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [loadingPhoto, setLoadingPhoto] = useState(false);
+  const [photoEditor, setPhotoEditor] = useState<{ surveyId: string; initialFile?: File } | null>(null);
+  const [editingPhoto, setEditingPhoto] = useState(false);
+  const photoRequest = useRef<AbortController | null>(null);
+  useEffect(() => () => photoRequest.current?.abort(), []);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -40,28 +46,62 @@ export const SurveyInboxPage: React.FC = () => {
   }, [statusFilter]);
 
   const handleSelectSurvey = (survey: SurveyLocation) => {
+    if (uploading || loadingPhoto) return;
+    setPhotoEditor(null);
+    setEditingPhoto(false);
     setSelectedSurvey(survey);
     setErrorMsg(null);
     setSuccessMsg(null);
   };
 
-  // 대표 사진 교체 업로드
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !selectedSurvey) return;
+  const openPhotoEditor = async (existing: boolean) => {
+    if (!selectedSurvey || uploading || loadingPhoto) return;
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    if (!existing) {
+      setPhotoEditor({ surveyId: selectedSurvey.id });
+      setEditingPhoto(true);
+      return;
+    }
+    const url = getSurveyImageUrl(selectedSurvey.stamped_photo_path);
+    if (!url) return;
+    const active = new AbortController();
+    photoRequest.current?.abort();
+    photoRequest.current = active;
+    setLoadingPhoto(true);
+    try {
+      const response = await fetch(url, { signal: active.signal });
+      if (!response.ok) throw new Error('기존 대표 사진을 불러오지 못했습니다.');
+      const blob = await response.blob();
+      if (blob.size > 25 * 1024 * 1024) throw new Error('25MB 이하 이미지만 편집할 수 있습니다.');
+      if (active.signal.aborted) return;
+      setPhotoEditor({ surveyId: selectedSurvey.id, initialFile: new File([blob], 'survey-photo', { type: blob.type }) });
+      setEditingPhoto(true);
+    } catch (err) {
+      if (!active.signal.aborted) setErrorMsg(err instanceof Error ? err.message : '기존 사진을 불러오지 못했습니다.');
+    } finally {
+      if (!active.signal.aborted) setLoadingPhoto(false);
+    }
+  };
 
+  const handlePhotoUpload = async (file: File) => {
+    if (!selectedSurvey || !photoEditor || photoEditor.surveyId !== selectedSurvey.id || uploading) return;
+    const surveyId = selectedSurvey.id;
+
+    setEditingPhoto(false);
     setUploading(true);
     setErrorMsg(null);
+    setSuccessMsg(null);
     try {
-      const newPath = await updateSurveyPhoto(selectedSurvey.id, file);
-      setSelectedSurvey({
-        ...selectedSurvey,
-        stamped_photo_path: newPath,
-      });
-      setSuccessMsg('대표 사진이 교체되었습니다.');
-      await fetchSurveys();
+      const { path: newPath, cleanupWarning } = await updateSurveyPhoto(surveyId, file);
+      setSelectedSurvey(previous => previous?.id === surveyId ? { ...previous, stamped_photo_path: newPath } : previous);
+      setSurveys(previous => previous.map(survey => survey.id === surveyId ? { ...survey, stamped_photo_path: newPath } : survey));
+      setPhotoEditor(null);
+      setSuccessMsg('편집한 대표 사진이 저장되었습니다.');
+      if (cleanupWarning) setErrorMsg(cleanupWarning);
     } catch (err: any) {
       setErrorMsg(err.message || '사진 교체에 실패했습니다.');
+      setEditingPhoto(true);
     } finally {
       setUploading(false);
     }
@@ -100,6 +140,7 @@ export const SurveyInboxPage: React.FC = () => {
 
         <select
           value={statusFilter}
+          disabled={uploading || loadingPhoto || editingPhoto}
           onChange={(e: any) => setStatusFilter(e.target.value)}
           style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
         >
@@ -158,19 +199,14 @@ export const SurveyInboxPage: React.FC = () => {
             <div className="survey-photo-card" style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '1rem', backgroundColor: '#fafafa' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <span style={{ fontWeight: 'bold' }}>PWA 촬영 대표 사진</span>
-                <label style={{ fontSize: '13px', color: '#007bff', cursor: 'pointer', fontWeight: 'bold' }}>
-                  📷 대표 사진 교체
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    disabled={uploading}
-                    style={{ display: 'none' }}
-                  />
-                </label>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button type="button" disabled={uploading || loadingPhoto} onClick={() => void openPhotoEditor(false)}>새 사진 선택·편집</button>
+                  <button type="button" disabled={!imageUrl || uploading || loadingPhoto} onClick={() => void openPhotoEditor(true)}>기존 사진 편집</button>
+                </div>
               </div>
 
-              {uploading && <div style={{ fontSize: '12px', color: '#007bff', marginBottom: '8px' }}>사진 교체 중...</div>}
+              {loadingPhoto && <p role="status">기존 사진을 불러오는 중…</p>}
+              {uploading && <p role="status">편집한 대표 사진을 저장하는 중…</p>}
 
               {imageUrl ? (
                 <img
@@ -218,7 +254,7 @@ export const SurveyInboxPage: React.FC = () => {
               <button
                 type="button"
                 onClick={handleApprove}
-                disabled={approving}
+                disabled={approving || uploading || loadingPhoto || editingPhoto}
                 style={{
                   padding: '12px',
                   backgroundColor: approving ? '#ccc' : '#28a745',
@@ -241,6 +277,15 @@ export const SurveyInboxPage: React.FC = () => {
           </div>
         )}
       </div>
+      {photoEditor && <EquipmentImageEditor
+        open={editingPhoto}
+        initialFile={photoEditor.initialFile}
+        autoCrop={false}
+        cropLabel="사진 영역 자르기"
+        saveError={errorMsg}
+        onAccept={file => void handlePhotoUpload(file)}
+        onCancel={() => { setEditingPhoto(false); setPhotoEditor(null); }}
+      />}
     </div>
   );
 };

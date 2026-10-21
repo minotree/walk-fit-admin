@@ -66,6 +66,19 @@ body {
   margin: 0;
 }
 
+.data-reset-dialog { width: min(660px, calc(100vw - 40px)); max-height: calc(100dvh - 40px); overflow: auto; box-sizing: border-box; padding: 24px; border: 1px solid #fecaca; border-radius: 12px; background: white; color: #1e293b; text-align: left; font-size: 14px; }
+.data-reset-dialog::backdrop { background: #0f172a99; }
+.data-reset-dialog p { margin: 12px 0; }
+.data-reset-dialog table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+.data-reset-dialog th, .data-reset-dialog td { padding: 6px 10px; border-bottom: 1px solid #e2e8f0; text-align: left; }
+.data-reset-dialog label { display: block; margin: 12px 0; }
+.data-reset-dialog label > input:not([type=checkbox]) { display: block; width: 100%; box-sizing: border-box; padding: 8px; margin-top: 8px; }
+.data-reset-error { color: #b91c1c; }
+.data-reset-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px; }
+.data-reset-actions button { padding: 8px 12px; cursor: pointer; }
+.data-reset-delete { background: #b91c1c; color: white; border: none; border-radius: 4px; }
+.data-reset-delete:disabled { opacity: .45; cursor: not-allowed; }
+
 html,
 body {
   width: 100%;
